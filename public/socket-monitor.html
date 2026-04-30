@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket.IO Monitor | User Management</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --accent: #38bdf8;
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --danger: #f87171;
+        }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #334155;
+        }
+        .status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .connected { background: rgba(74, 222, 128, 0.2); color: var(--success); }
+        .disconnected { background: rgba(248, 113, 113, 0.2); color: var(--danger); }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            margin: 20px 0;
+            background: var(--card);
+            padding: 20px;
+            border-radius: 12px;
+        }
+        input {
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            outline: none;
+        }
+        button {
+            background: var(--accent);
+            color: var(--bg);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover { opacity: 0.9; }
+
+        #log {
+            flex: 1;
+            background: #000;
+            border-radius: 12px;
+            padding: 20px;
+            overflow-y: auto;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            border: 1px solid #334155;
+        }
+        .entry {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #1e293b;
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .timestamp { color: #64748b; margin-right: 10px; }
+        .event-name { color: var(--accent); font-weight: bold; }
+        pre { margin: 10px 0 0 0; color: #94a3b8; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <header>
+        <h2>📡 Socket.IO Monitor</h2>
+        <div id="status" class="status disconnected">Disconnected</div>
+    </header>
+
+    <div class="controls">
+        <input type="text" id="userId" placeholder="Enter User ID (UUID)">
+        <button onclick="connect()">Connect</button>
+    </div>
+
+    <div id="log">
+        <div class="entry">Welcome! Enter a User ID to start monitoring real-time events.</div>
+    </div>
+
+    <script>
+        let socket;
+        const logEl = document.getElementById('log');
+        const statusEl = document.getElementById('status');
+
+        function addLog(event, data) {
+            const div = document.createElement('div');
+            div.className = 'entry';
+            const time = new Date().toLocaleTimeString();
+            div.innerHTML = `
+                <span class="timestamp">[${time}]</span>
+                <span class="event-name">${event}</span>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            logEl.prepend(div);
+        }
+
+        function connect() {
+            const userId = document.getElementById('userId').value;
+
+            if (!userId) return alert('User ID is required');
+
+            if (socket) socket.disconnect();
+
+            // Connect to server (assumes same host)
+            socket = io('/', { query: { userId } });
+
+            socket.on('connect', () => {
+                statusEl.innerText = 'Connected';
+                statusEl.className = 'status connected';
+                addLog('SYSTEM', { message: 'Connected to server', socketId: socket.id });
+            });
+
+            socket.on('disconnect', () => {
+                statusEl.innerText = 'Disconnected';
+                statusEl.className = 'status disconnected';
+                addLog('SYSTEM', { message: 'Disconnected from server' });
+            });
+        }
+    </script>
+</body>
+</html>
